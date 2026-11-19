@@ -681,12 +681,20 @@ const buildDirectFieldGqlOperationFilter = ({
             } as FloatFilter,
           };
         case RecordFilterOperand.IS_NOT:
+          // Null values are not "equal to" anything, so NOT(eq) alone would drop them.
           return {
-            not: {
-              [fieldMetadataItem.name]: {
-                eq: parseNumericFilterValue(recordFilter.value),
-              } as FloatFilter,
-            },
+            or: [
+              {
+                not: {
+                  [fieldMetadataItem.name]: {
+                    eq: parseNumericFilterValue(recordFilter.value),
+                  } as FloatFilter,
+                },
+              },
+              {
+                [fieldMetadataItem.name]: { is: 'NULL' } as FloatFilter,
+              },
+            ],
           };
         default:
           throw new Error(
@@ -828,13 +836,22 @@ const buildDirectFieldGqlOperationFilter = ({
             };
           case RecordFilterOperand.IS_NOT:
             return {
-              not: {
-                [fieldMetadataItem.name]: {
-                  amountMicros: {
-                    eq: parseNumericFilterValue(recordFilter.value) * 1000000,
+              or: [
+                {
+                  not: {
+                    [fieldMetadataItem.name]: {
+                      amountMicros: {
+                        eq: parseNumericFilterValue(recordFilter.value) * 1000000,
+                      },
+                    } as CurrencyFilter,
                   },
-                } as CurrencyFilter,
-              },
+                },
+                {
+                  [fieldMetadataItem.name]: {
+                    amountMicros: { is: 'NULL' },
+                  } as CurrencyFilter,
+                },
+              ],
             };
           default:
             throw new Error(
